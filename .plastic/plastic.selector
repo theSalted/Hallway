@@ -1,0 +1,4 @@
+repository "Hallway@soy_studio@cloud"
+  path "/"
+    br "/main"
+    co "/main"
