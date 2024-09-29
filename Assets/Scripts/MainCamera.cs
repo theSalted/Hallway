@@ -18,5 +18,9 @@ public class MainCamera : MonoBehaviour
         {
             portals[i].Render();
         }
+
+        //  for (int i = 0; i < portals.Length; i++) {
+        //     portals[i].PostPortalRender();
+        // }
     }
 }

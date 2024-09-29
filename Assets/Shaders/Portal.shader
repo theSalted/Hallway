@@ -2,7 +2,7 @@ Shader "Custom/Portal"
 {
     Properties
     {
-        _InactiveColour ("Inactive Colour", Color) = (1, 1, 1, 1)
+        _InactiveColour ("Inactive Colour", Color) = (0, 0, 0, 0)
         _MainTex ("Portal Texture", 2D) = "white" {}
         _DisplayMask ("Display Mask", Float) = 1.0
     }

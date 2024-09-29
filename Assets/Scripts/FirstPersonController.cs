@@ -42,6 +42,8 @@ namespace InputAssets
 		public float GroundedRadius = 0.5f;
 		[Tooltip("What layers the character uses as ground")]
 		public LayerMask GroundLayers;
+		[Tooltip("The height the player can step up")]
+		public float StepOffset = 0.5f;
 
 		[Header("Cinemachine")]
 		[Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
@@ -108,6 +110,9 @@ namespace InputAssets
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
+			_controller = GetComponent<CharacterController>();
+			_controller.slopeLimit = 45f; // Adjust the slope limit
+			_controller.stepOffset = StepOffset; // Adjust the height of steps
 		}
 
 		private void Update()
