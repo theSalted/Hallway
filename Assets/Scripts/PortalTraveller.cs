@@ -18,5 +18,6 @@ public class PortalTraveller : MonoBehaviour
     public virtual void ExitPortalThreshold()
     {
         Debug.Log("Exit Portal Threshold");
+        
     }
 }

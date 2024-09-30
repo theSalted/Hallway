@@ -12,6 +12,9 @@ public class Portal : MonoBehaviour
     
     List<PortalTraveller> trackedTravellers;
 
+    public float nearClipOffset = 0.05f;
+    public float nearClipLimit = 0.2f;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -26,26 +29,49 @@ public class Portal : MonoBehaviour
         HandleTravellers();
     }
 
-    void HandleTravellers () {
-
+   void HandleTravellers() {
         for (int i = 0; i < trackedTravellers.Count; i++) {
             PortalTraveller traveller = trackedTravellers[i];
             Transform travellerT = traveller.transform;
-            var m = linkedPortal.transform.localToWorldMatrix * transform.worldToLocalMatrix * travellerT.localToWorldMatrix;
 
             Vector3 offsetFromPortal = travellerT.position - transform.position;
-            int portalSide = System.Math.Sign (Vector3.Dot (offsetFromPortal, transform.forward));
-            int portalSideOld = System.Math.Sign (Vector3.Dot (traveller.previousOffsetFromPortal, transform.forward));
-            // Teleport the traveller if it has crossed from one side of the portal to the other
-            if (portalSide != portalSideOld) {
-                traveller.Teleport (transform, linkedPortal.transform, m.GetColumn (3), m.rotation);
-                trackedTravellers.RemoveAt (i);
-                i--;
+            float dotProduct = Vector3.Dot(offsetFromPortal, transform.forward);
+            int portalSide = System.Math.Sign(dotProduct);
+            int portalSideOld = System.Math.Sign(Vector3.Dot(traveller.previousOffsetFromPortal, transform.forward));
 
+            // Debugging output
+            Debug.Log($"Traveller: {traveller.name}, DotProduct: {dotProduct}, PortalSide: {portalSide}, PreviousPortalSide: {portalSideOld}");
+
+            // Teleport the traveller if it has crossed from one side of the portal to the other
+            if (portalSide != portalSideOld && dotProduct != 0) {
+                var m = linkedPortal.transform.localToWorldMatrix * transform.worldToLocalMatrix * travellerT.localToWorldMatrix;
+                traveller.Teleport(transform, linkedPortal.transform, m.GetColumn(3), m.rotation);
+                // Update previousOffsetFromPortal after teleportation
+                traveller.previousOffsetFromPortal = traveller.transform.position - transform.position;
             } else {
-                //UpdateSliceParams (traveller);
+                // Update the previous offset
                 traveller.previousOffsetFromPortal = offsetFromPortal;
             }
+        }
+    }
+
+    void SetNearClipPlane() {
+         Transform clipPlane = transform;
+        int dot = System.Math.Sign (Vector3.Dot (clipPlane.forward, transform.position - portalCamera.transform.position));
+
+        Vector3 camSpacePos = portalCamera.worldToCameraMatrix.MultiplyPoint (clipPlane.position);
+        Vector3 camSpaceNormal = portalCamera.worldToCameraMatrix.MultiplyVector (clipPlane.forward) * dot;
+        float camSpaceDst = -Vector3.Dot (camSpacePos, camSpaceNormal) + nearClipOffset;
+
+        // Don't use oblique clip plane if very close to portal as it seems this can cause some visual artifacts
+        if (Mathf.Abs (camSpaceDst) > nearClipLimit) {
+            Vector4 clipPlaneCameraSpace = new Vector4 (camSpaceNormal.x, camSpaceNormal.y, camSpaceNormal.z, camSpaceDst);
+
+            // Update projection based on new clip plane
+            // Calculate matrix with player cam so that player camera settings (fov, etc) are used
+            portalCamera.projectionMatrix = portalCamera.CalculateObliqueMatrix (clipPlaneCameraSpace);
+        } else {
+            portalCamera.projectionMatrix = portalCamera.projectionMatrix;
         }
     }
 
@@ -97,6 +123,8 @@ public class Portal : MonoBehaviour
         // Set the portal camera to match the player's view but transformed into the linked portal's space
         var matrix = transform.localToWorldMatrix * linkedPortal.transform.worldToLocalMatrix * playerCamera.transform.localToWorldMatrix;
         portalCamera.transform.SetPositionAndRotation(matrix.GetColumn(3), matrix.rotation);
+
+        SetNearClipPlane();
 
         // Render the portal camera's view
         portalCamera.Render();
